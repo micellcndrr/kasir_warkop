@@ -31,6 +31,19 @@ LOG_FILE = get_log_file(CABANG)
 
 st.sidebar.success(f"📍 {CABANG}")
 st.sidebar.markdown("---")
+st.sidebar.subheader("🛠 Menu Admin")
+admin_pass_input = st.sidebar.text_input("Password admin", type="password")  # ← penting
+is_admin = admin_pass_input == "adminrumah"  # kamu bebas ganti password-nya
+if is_admin:
+    if st.sidebar.button("🗑️ Hapus Log Cabang Ini"):
+        LOG_FILE.unlink(missing_ok=True)
+        st.sidebar.success(f"Log transaksi {CABANG} sudah dihapus.")
+        st.rerun()
+else:
+    st.sidebar.caption("Masukkan password admin untuk akses hapus log.")
+
+
+
 
 # ================== INPUT TRANSAKSI ==================
 col_head1, col_head2 = st.columns([3, 1])

@@ -4,6 +4,8 @@ import pandas as pd
 from pathlib import Path
 import plotly.express as px
 
+# ================== KONFIG & DATA ==================
+
 ITEMS = {
     "Es Teh Manis": 8000,
     "Kopi Susu": 12000,
@@ -12,11 +14,8 @@ ITEMS = {
     "Indomie Goreng": 10000,
 }
 
+st.set_page_config(page_title="Warkop Pancong", layout="wide")
 
-# Konfigurasi halaman
-st.set_page_config(page_title="Warkop Pancong ", layout="wide")
-
-# Fungsi dapatkan nama file log per cabang
 def get_log_file(cabang: str) -> Path:
     return Path(f"kasir_log_{cabang.lower().replace(' ', '_')}.txt")
 
@@ -24,6 +23,7 @@ st.title("🏪 KASIR Warkop MULTI-CABANG")
 st.markdown("**Bogor | Kalimulya | GDC | Sawangan**")
 
 # ================== SIDEBAR ==================
+
 st.sidebar.title("🏪 Pilih Cabang Warkop")
 cabang_options = ["Bogor", "Kalimulya", "GDC", "Sawangan"]
 CABANG = st.sidebar.selectbox("Cabang:", cabang_options, index=0)
@@ -31,9 +31,11 @@ LOG_FILE = get_log_file(CABANG)
 
 st.sidebar.success(f"📍 {CABANG}")
 st.sidebar.markdown("---")
+
 st.sidebar.subheader("🛠 Menu Admin")
-admin_pass_input = st.sidebar.text_input("Password admin", type="password")  # ← penting
-is_admin = admin_pass_input == "adminrumah"  # kamu bebas ganti password-nya
+admin_pass_input = st.sidebar.text_input("Password admin", type="password")
+is_admin = admin_pass_input == "adminrumah"   # ganti sesuai selera
+
 if is_admin:
     if st.sidebar.button("🗑️ Hapus Log Cabang Ini"):
         LOG_FILE.unlink(missing_ok=True)
@@ -42,34 +44,32 @@ if is_admin:
 else:
     st.sidebar.caption("Masukkan password admin untuk akses hapus log.")
 
-
-
-
 # ================== INPUT TRANSAKSI ==================
+
 col_head1, col_head2 = st.columns([3, 1])
 with col_head1:
     st.markdown(f"### 💰 Cabang: **{CABANG}**")
 with col_head2:
     st.metric("Status", "🟢 Online")
 
-col1, col2, col3 = st.columns(3)
+col1, col2, col3, col4 = st.columns(4)
 with col1:
     nama = st.selectbox("🛒 Pilih Barang", options=list(ITEMS.keys()))
 with col2:
     qty = st.number_input("📦 Qty", min_value=1, step=1)
 with col3:
-    # harga otomatis dari ITEMS, TIDAK bisa diubah user
+    metode = st.selectbox("💳 Metode Bayar", ["Tunai", "QRIS"])
+with col4:
     harga = float(ITEMS[nama])
     st.metric("💵 Harga/item", f"Rp {harga:,.0f}")
 
-
 # ================== PROSES BAYAR ==================
+
 if st.button(f"✅ PROSES TRANSAKSI ({CABANG})", type="primary", use_container_width=True):
     if nama and qty > 0 and harga > 0:
         total = qty * harga
-        timestamp = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        # Tampilkan struk
         st.balloons()
         st.success(
             f"""
@@ -80,11 +80,12 @@ if st.button(f"✅ PROSES TRANSAKSI ({CABANG})", type="primary", use_container_w
             | Barang | Qty | Harga | Total |
             |--------|-----|-------|-------|
             | **{nama}** | {qty} | Rp {harga:,.0f} | **Rp {total:,.0f}** |
+            **Metode Bayar: {metode}**
             """
         )
 
-        # Simpan ke file log cabang
-        log_line = f"{timestamp} | {CABANG} | {nama} | {qty} | {harga} | {total}\n"
+        # format log: waktu|cabang|barang|qty|harga|total|metode
+        log_line = f"{timestamp}|{CABANG}|{nama}|{qty}|{harga}|{total}|{metode}\n"
         with open(LOG_FILE, "a", encoding="utf-8") as f:
             f.write(log_line)
 
@@ -93,6 +94,7 @@ if st.button(f"✅ PROSES TRANSAKSI ({CABANG})", type="primary", use_container_w
         st.error("❌ Lengkapi semua field dengan benar!")
 
 # ================== RIWAYAT TRANSAKSI CABANG ==================
+
 st.markdown("---")
 st.subheader(f"📊 Riwayat Transaksi - {CABANG}")
 
@@ -101,33 +103,76 @@ if LOG_FILE.exists():
     if raw:
         lines = raw.split("\n")
         rows = []
-        grand_total = 0.0
-
         for line in lines:
-            parts = line.split("|")
-            if len(parts) >= 6:
-                waktu, cabang_log, barang, qty_log, harga_log, total_log = parts[:6]
+            parts = [p.strip() for p in line.split("|")]
+            if len(parts) >= 7:
+                waktu, cabang_log, barang, qty_log, harga_log, total_log, metode_log = parts[:7]
+                qty_num = int(qty_log)
                 harga_num = float(harga_log)
                 total_num = float(total_log)
                 rows.append(
                     [
                         waktu,
                         barang,
-                        int(qty_log),
-                        f"Rp {harga_num:,.0f}",
-                        f"Rp {total_num:,.0f}",
+                        qty_num,
+                        harga_num,
+                        total_num,
+                        metode_log,
                     ]
                 )
-                grand_total += total_num
 
         if rows:
-            df = pd.DataFrame(rows, columns=["Waktu", "Barang", "Qty", "Harga", "Total"])
-            st.dataframe(df, use_container_width=True, hide_index=True)
+            df = pd.DataFrame(
+                rows,
+                columns=["Waktu", "Barang", "Qty", "HargaNum", "TotalNum", "Metode"],
+            )
+            df["Harga"] = df["HargaNum"].map(lambda x: f"Rp {x:,.0f}")
+            df["Total"] = df["TotalNum"].map(lambda x: f"Rp {x:,.0f}")
+
+            st.dataframe(
+                df[["Waktu", "Barang", "Qty", "Harga", "Total", "Metode"]],
+                use_container_width=True,
+                hide_index=True,
+            )
+
+            # summary tunai vs qris
+            rekap_metode = df.groupby("Metode")["TotalNum"].sum().reset_index()
+            grand_total = df["TotalNum"].sum()
 
             c1, c2, c3 = st.columns(3)
+            tunai_total = rekap_metode.loc[rekap_metode["Metode"] == "Tunai", "TotalNum"].sum()
+            qris_total = rekap_metode.loc[rekap_metode["Metode"] == "QRIS", "TotalNum"].sum()
+            c1.metric("💵 Tunai", f"Rp {tunai_total:,.0f}")
             c2.metric("💎 Total Penjualan Cabang", f"Rp {grand_total:,.0f}")
+            c3.metric("📱 QRIS", f"Rp {qris_total:,.0f}")
 
-            csv = df.to_csv(index=False).encode("utf-8")
+            # Rekap harian per cabang
+            with st.expander("📅 Rekap Harian per Metode"):
+                df["Tanggal"] = df["Waktu"].str.split(" ").str[0]
+                rekap_harian = (
+                    df.groupby(["Tanggal", "Metode"])["TotalNum"].sum().reset_index()
+                )
+                pivot = rekap_harian.pivot(
+                    index="Tanggal", columns="Metode", values="TotalNum"
+                ).fillna(0)
+                pivot["Total"] = pivot.sum(axis=1)
+                tampil = pivot.applymap(lambda x: f"Rp {x:,.0f}")
+                st.dataframe(tampil, use_container_width=True)
+
+                fig = px.bar(
+                    rekap_harian,
+                    x="Tanggal",
+                    y="TotalNum",
+                    color="Metode",
+                    barmode="group",
+                    title=f"Rekap Harian {CABANG} per Metode",
+                )
+                st.plotly_chart(fig, use_container_width=True)
+
+            # download csv
+            csv = df[["Waktu", "Barang", "Qty", "HargaNum", "TotalNum", "Metode"]].to_csv(
+                index=False
+            ).encode("utf-8")
             st.download_button(
                 f"📥 Download CSV {CABANG}",
                 data=csv,
@@ -140,7 +185,3 @@ if LOG_FILE.exists():
         st.info(f"📝 {CABANG}: Belum ada transaksi.")
 else:
     st.info(f"📝 {CABANG}: File log belum dibuat.")
-
-# Hapus log caban
-
-# ==================

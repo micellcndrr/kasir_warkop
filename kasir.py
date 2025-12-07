@@ -18,8 +18,7 @@ st.set_page_config(page_title="Warkop Pancong", layout="wide")
 
 def get_log_file(cabang: str) -> Path:
     return Path(f"kasir_log_{cabang.lower().replace(' ', '_')}.txt")
-
-st.title("🏪 KASIR Warkop MULTI-CABANG")
+st.title("🏪 KASIR Warkop Pancong MULTI-CABANG")
 st.markdown("**Bogor | Kalimulya | GDC | Sawangan**")
 
 # ================== SIDEBAR ==================

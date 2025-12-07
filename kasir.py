@@ -4,14 +4,27 @@ import pandas as pd
 from pathlib import Path
 import plotly.express as px
 
-# ================== KONFIG & DATA ==================
-
+# ================== KONFIG & DATA ================== = {
 ITEMS = {
-    "Es Teh Manis": 8000,
-    "Kopi Susu": 12000,
-    "Teh Manis": 6000,
-    "Roti Bakar": 15000,
-    "Indomie Goreng": 10000,
+    "PANCONG": {
+        "Pancong Polos": 10_000,
+        "Pancong Meses Susu": 12_000,
+        "Pancong Milo": 15_000,
+        "Pancong Strawberry": 12_000,
+        "Pancong Ovaltine": 12_000,
+        "Pancong Kacang": 13_000,
+        "Pancong Keju Susu": 15_000,
+        "Pancong Greentea": 13_000,
+        "Pancong Tiramisu": 13_000,
+        "Pancong Taro": 13_000,
+        "Pancong Oreo": 13_000,
+        "Pancong Choco Crunchy": 16_000,
+        "Pancong Redvelvet": 13_000,
+    },
+    # kategori lain nanti tinggal ditambah di sini
+
+
+     
 }
 
 st.set_page_config(page_title="Warkop Pancong", layout="wide")
@@ -52,15 +65,21 @@ with col_head2:
     st.metric("Status", "🟢 Online")
 
 col1, col2, col3, col4 = st.columns(4)
+
 with col1:
-    nama = st.selectbox("🛒 Pilih Barang", options=list(ITEMS.keys()))
+    kategori = st.selectbox("📂 Kategori", list(ITEMS.keys()))
+
 with col2:
-    qty = st.number_input("📦 Qty", min_value=1, step=1)
+    nama = st.selectbox("🛒 Pilih Barang", list(ITEMS[kategori].keys()))
+
 with col3:
-    metode = st.selectbox("💳 Metode Bayar", ["Tunai", "QRIS"])
+    qty = st.number_input("📦 Qty", min_value=1, step=1)
+
 with col4:
-    harga = float(ITEMS[nama])
+    metode = st.selectbox("💳 Metode Bayar", ["Tunai", "QRIS"])
+    harga = float(ITEMS[kategori][nama])
     st.metric("💵 Harga/item", f"Rp {harga:,.0f}")
+
 
 # ================== PROSES BAYAR ==================
 
